@@ -1,0 +1,6 @@
+<map id="inheritance748b617ab7" name="inheritance748b617ab7">
+<area shape="rect" id="node1" title="Base class of all Components." alt="" coords="355,4,430,24"/>
+<area shape="rect" id="node4" href="../../api/ctapipe.image.reducer.DataVolumeReducer.html#ctapipe.image.reducer.DataVolumeReducer" target="_top" title="Base component for data volume reducers." alt="" coords="467,4,587,24"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.image.reducer.NullDataVolumeReducer.html#ctapipe.image.reducer.NullDataVolumeReducer" target="_top" title="Perform no data volume reduction" alt="" coords="624,4,764,24"/>
+<area shape="rect" id="node5" title="The base class for all classes that have descriptors." alt="" coords="4,4,98,24"/>
+</map>

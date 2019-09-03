@@ -1,0 +1,681 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ctapipe.image.extractor &mdash; ctapipe v0.7.0.post1+git42257b8</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7.0.post1+git42257b8
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ctapipe.image.extractor</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ctapipe.image.extractor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Charge extraction algorithms to reduce the image to one value per pixel</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;ImageExtractor&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;FullWaveformSum&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;FixedWindowSum&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;GlobalPeakWindowSum&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;LocalPeakWindowSum&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;NeighborPeakWindowSum&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;BaselineSubtractedNeighborPeakWindowSum&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sum_samples_around_peak&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;neighbor_average_waveform&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;extract_pulse_time_around_peak&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;subtract_baseline&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="k">import</span> <span class="n">abstractmethod</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">traitlets</span> <span class="k">import</span> <span class="n">Int</span>
+<span class="kn">from</span> <span class="nn">ctapipe.core</span> <span class="k">import</span> <span class="n">Component</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">njit</span><span class="p">,</span> <span class="n">prange</span><span class="p">,</span> <span class="n">guvectorize</span><span class="p">,</span> <span class="n">float64</span><span class="p">,</span> <span class="n">float32</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int32</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<span class="nd">@guvectorize</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">(</span><span class="n">float64</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">[:]),</span>
+        <span class="p">(</span><span class="n">float32</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">[:]),</span>
+    <span class="p">],</span>
+    <span class="s1">&#39;(s),(),(),()-&gt;()&#39;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">sum_samples_around_peak</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">shift</span><span class="p">,</span> <span class="n">ret</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sum the samples from the waveform using the window defined by a</span>
+<span class="sd">    peak position, window width, and window shift.</span>
+
+<span class="sd">    This function is a numpy universal function which defines the operation</span>
+<span class="sd">    applied on the waveform for every channel and pixel. Therefore in the</span>
+<span class="sd">    code body of this function:</span>
+<span class="sd">        - waveforms is a 1D array of size n_samples.</span>
+<span class="sd">        - peak_index, width and shift are integers, corresponding to the</span>
+<span class="sd">            correct value for the current pixel</span>
+
+<span class="sd">    The ret argument is required by numpy to create the numpy array which is</span>
+<span class="sd">    returned. It can be ignored when calling this function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+<span class="sd">    peak_index : ndarray or int</span>
+<span class="sd">        Peak index for each pixel.</span>
+<span class="sd">    width : ndarray or int</span>
+<span class="sd">        Window size of integration window for each pixel.</span>
+<span class="sd">    shift : ndarray or int</span>
+<span class="sd">        Window size of integration window for each pixel.</span>
+<span class="sd">    ret : ndarray</span>
+<span class="sd">        Return argument for ufunc (ignore)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    charge : ndarray</span>
+<span class="sd">        Extracted charge.</span>
+<span class="sd">        Shape: (n_pix)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">peak_index</span> <span class="o">-</span> <span class="n">shift</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">width</span>
+    <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">sample</span> <span class="o">&lt;</span> <span class="n">n_samples</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">neighbor_average_waveform_jit_3d</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">lwt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    # TODO: deprecate</span>
+<span class="sd">    Obtain the average waveform built from the neighbors of each pixel</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_chan, n_pix, n_samples)</span>
+<span class="sd">    neighbors : ndarray</span>
+<span class="sd">        2D array where each row is [pixel index, one neighbor of that pixel].</span>
+<span class="sd">        Changes per telescope.</span>
+<span class="sd">        Can be obtained from</span>
+<span class="sd">        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.</span>
+<span class="sd">    lwt: int</span>
+<span class="sd">        Weight of the local pixel (0: peak from neighbors only,</span>
+<span class="sd">        1: local pixel counts as much as any neighbor)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    average_wf : ndarray</span>
+<span class="sd">        Average of neighbor waveforms for each pixel.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_neighbors</span> <span class="o">=</span> <span class="n">neighbors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">sum_</span> <span class="o">=</span> <span class="n">waveforms</span> <span class="o">*</span> <span class="n">lwt</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">n_neighbors</span><span class="p">):</span>
+        <span class="n">pixel</span> <span class="o">=</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">neighbor</span> <span class="o">=</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">channel</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">sum_</span><span class="p">[</span><span class="n">channel</span><span class="p">,</span> <span class="n">pixel</span><span class="p">]</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">channel</span><span class="p">,</span> <span class="n">neighbor</span><span class="p">]</span>
+            <span class="n">n</span><span class="p">[</span><span class="n">channel</span><span class="p">,</span> <span class="n">pixel</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">sum_</span> <span class="o">/</span> <span class="n">n</span>
+
+
+<span class="nd">@njit</span><span class="p">(</span><span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">neighbor_average_waveform_jit</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">lwt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtain the average waveform built from the neighbors of each pixel</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+<span class="sd">    neighbors : ndarray</span>
+<span class="sd">        2D array where each row is [pixel index, one neighbor of that pixel].</span>
+<span class="sd">        Changes per telescope.</span>
+<span class="sd">        Can be obtained from</span>
+<span class="sd">        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.</span>
+<span class="sd">    lwt: int</span>
+<span class="sd">        Weight of the local pixel (0: peak from neighbors only,</span>
+<span class="sd">        1: local pixel counts as much as any neighbor)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    average_wf : ndarray</span>
+<span class="sd">        Average of neighbor waveforms for each pixel.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_neighbors</span> <span class="o">=</span> <span class="n">neighbors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">sum_</span> <span class="o">=</span> <span class="n">waveforms</span> <span class="o">*</span> <span class="n">lwt</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">n_neighbors</span><span class="p">):</span>
+        <span class="n">pixel</span> <span class="o">=</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">neighbor</span> <span class="o">=</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">sum_</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span>
+        <span class="n">n</span><span class="p">[</span><span class="n">pixel</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">sum_</span> <span class="o">/</span> <span class="n">n</span>
+
+
+<div class="viewcode-block" id="neighbor_average_waveform"><a class="viewcode-back" href="../../../api/ctapipe.image.neighbor_average_waveform.html#ctapipe.image.neighbor_average_waveform">[docs]</a><span class="k">def</span> <span class="nf">neighbor_average_waveform</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">lwt</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;A 3 dimensional waveforms array was passed &quot;</span>
+            <span class="s2">&quot;to neighbor_average_waveform. &quot;</span>
+            <span class="s2">&quot;Waveforms should be shape (n_pixels, n_samples). &quot;</span>
+            <span class="s2">&quot;This will raise an error in future versions.&quot;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">neighbor_average_waveform_jit_3d</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">lwt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">neighbor_average_waveform_jit</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">lwt</span><span class="p">)</span></div>
+
+
+<span class="nd">@guvectorize</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">(</span><span class="n">float64</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">[:]),</span>
+        <span class="p">(</span><span class="n">float32</span><span class="p">[:],</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">int64</span><span class="p">,</span> <span class="n">float64</span><span class="p">[:]),</span>
+    <span class="p">],</span>
+    <span class="s1">&#39;(s),(),(),()-&gt;()&#39;</span><span class="p">,</span>
+    <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">extract_pulse_time_around_peak</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">shift</span><span class="p">,</span> <span class="n">ret</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtain the pulse time within a window defined by a peak finding algorithm,</span>
+<span class="sd">    using the weighted average of the samples.</span>
+
+<span class="sd">    This function is a numpy universal function which defines the operation</span>
+<span class="sd">    applied on the waveform for every channel and pixel. Therefore in the</span>
+<span class="sd">    code body of this function:</span>
+<span class="sd">        - waveforms is a 1D array of size n_samples.</span>
+<span class="sd">        - Peakpos, width and shift are integers, corresponding to the correct</span>
+<span class="sd">            value for the current pixel</span>
+
+<span class="sd">    The ret argument is required by numpy to create the numpy array which is</span>
+<span class="sd">    returned. It can be ignored when calling this function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+<span class="sd">    peak_index : ndarray or int</span>
+<span class="sd">        Peak index in waveform for each pixel.</span>
+<span class="sd">    width : ndarray or int</span>
+<span class="sd">        Window size of integration window for each pixel.</span>
+<span class="sd">    shift : ndarray or int</span>
+<span class="sd">        Window size of integration window for each pixel.</span>
+<span class="sd">    ret : ndarray</span>
+<span class="sd">        Return argument for ufunc (ignore)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pulse_time : ndarray</span>
+<span class="sd">        Floating point pulse time in each pixel</span>
+<span class="sd">        Shape: (n_pix)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">peak_index</span> <span class="o">-</span> <span class="n">shift</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">width</span>
+
+    <span class="n">num</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">den</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">isample</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">isample</span> <span class="o">&lt;</span> <span class="n">n_samples</span><span class="p">:</span>
+            <span class="n">num</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span> <span class="o">*</span> <span class="n">isample</span>
+            <span class="n">den</span> <span class="o">+=</span> <span class="n">waveforms</span><span class="p">[</span><span class="n">isample</span><span class="p">]</span>
+
+    <span class="c1"># TODO: Return pulse time in units of ns instead of isample</span>
+    <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">num</span> <span class="o">/</span> <span class="n">den</span> <span class="k">if</span> <span class="n">den</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">peak_index</span>
+
+
+<div class="viewcode-block" id="subtract_baseline"><a class="viewcode-back" href="../../../api/ctapipe.image.subtract_baseline.html#ctapipe.image.subtract_baseline">[docs]</a><span class="k">def</span> <span class="nf">subtract_baseline</span><span class="p">(</span><span class="n">waveforms</span><span class="p">,</span> <span class="n">baseline_start</span><span class="p">,</span> <span class="n">baseline_end</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Subtracts the waveform baseline, estimated as the mean waveform value</span>
+<span class="sd">    in the interval [baseline_start:baseline_end]</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    waveforms : ndarray</span>
+<span class="sd">        Waveforms stored in a numpy array.</span>
+<span class="sd">        Shape: (n_pix, n_samples)</span>
+<span class="sd">    baseline_start : int</span>
+<span class="sd">        Sample where the baseline window starts</span>
+<span class="sd">    baseline_end : int</span>
+<span class="sd">        Sample where the baseline window ends</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    baseline_corrected : ndarray</span>
+<span class="sd">        Waveform with the baseline subtracted</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseline_corrected</span> <span class="o">=</span> <span class="n">waveforms</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+        <span class="n">waveforms</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">baseline_start</span><span class="p">:</span><span class="n">baseline_end</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+    <span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">baseline_corrected</span></div>
+
+
+<div class="viewcode-block" id="ImageExtractor"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.ImageExtractor.html#ctapipe.image.ImageExtractor">[docs]</a><span class="k">class</span> <span class="nc">ImageExtractor</span><span class="p">(</span><span class="n">Component</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Base component to handle the extraction of charge and pulse time</span>
+<span class="sd">        from an image cube (waveforms).</span>
+
+<span class="sd">        Attributes</span>
+<span class="sd">        ----------</span>
+<span class="sd">        neighbors : ndarray</span>
+<span class="sd">            2D array where each row is [pixel index, one neighbor</span>
+<span class="sd">            of that pixel].</span>
+<span class="sd">            Changes per telescope.</span>
+<span class="sd">            Can be obtained from</span>
+<span class="sd">            `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        config : traitlets.loader.Config</span>
+<span class="sd">            Configuration specified by config file or cmdline arguments.</span>
+<span class="sd">            Used to set traitlet values.</span>
+<span class="sd">            Set to None if no configuration to pass.</span>
+<span class="sd">        tool : ctapipe.core.Tool or None</span>
+<span class="sd">            Tool executable that is calling this component.</span>
+<span class="sd">            Passes the correct logger to the component.</span>
+<span class="sd">            Set to None if no Tool to pass.</span>
+<span class="sd">        kwargs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ImageExtractor.requires_neighbors"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.ImageExtractor.html#ctapipe.image.ImageExtractor.requires_neighbors">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">requires_neighbors</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method used for callers of the ImageExtractor to know if the</span>
+<span class="sd">        extractor requires knowledge of the pixel neighbors</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="ImageExtractor.check_neighbor_set"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.ImageExtractor.html#ctapipe.image.ImageExtractor.check_neighbor_set">[docs]</a>    <span class="k">def</span> <span class="nf">check_neighbor_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the pixel neighbors has been set for the extractor</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        -------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If neighbors has not been set</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">requires_neighbors</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;neighbors attribute must be set&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ImageExtractor.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.ImageExtractor.html#ctapipe.image.ImageExtractor.__call__">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call the relevant functions to fully extract the charge and time</span>
+<span class="sd">        for the particular extractor.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        waveforms : ndarray</span>
+<span class="sd">            Waveforms stored in a numpy array of shape</span>
+<span class="sd">            (n_pix, n_samples).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        charge : ndarray</span>
+<span class="sd">            Extracted charge.</span>
+<span class="sd">            Shape: (n_pix)</span>
+<span class="sd">        pulse_time : ndarray</span>
+<span class="sd">            Floating point pulse time in each pixel.</span>
+<span class="sd">            Shape: (n_pix)</span>
+<span class="sd">        &quot;&quot;&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="FullWaveformSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.FullWaveformSum.html#ctapipe.image.FullWaveformSum">[docs]</a><span class="k">class</span> <span class="nc">FullWaveformSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor that sums the entire waveform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FullWaveformSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.FullWaveformSum.html#ctapipe.image.FullWaveformSum.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="n">charge</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">pulse_time</span> <span class="o">=</span> <span class="n">extract_pulse_time_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">charge</span><span class="p">,</span> <span class="n">pulse_time</span></div></div>
+
+
+<div class="viewcode-block" id="FixedWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.FixedWindowSum.html#ctapipe.image.FixedWindowSum">[docs]</a><span class="k">class</span> <span class="nc">FixedWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor that sums within a fixed window defined by the user.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_start</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Define the start position for the integration window&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Define the width of the integration window&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FixedWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.FixedWindowSum.html#ctapipe.image.FixedWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_start</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_start</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span>
+        <span class="n">charge</span> <span class="o">=</span> <span class="n">waveforms</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">pulse_time</span> <span class="o">=</span> <span class="n">extract_pulse_time_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">charge</span><span class="p">,</span> <span class="n">pulse_time</span></div></div>
+
+
+<div class="viewcode-block" id="GlobalPeakWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.GlobalPeakWindowSum.html#ctapipe.image.GlobalPeakWindowSum">[docs]</a><span class="k">class</span> <span class="nc">GlobalPeakWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor which sums in a window about the</span>
+<span class="sd">    peak from the global average waveform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Define the width of the integration window&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">window_shift</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">3</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Define the shift of the integration window &#39;</span>
+                <span class="s1">&#39;from the peak_index (peak_index - shift)&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GlobalPeakWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.GlobalPeakWindowSum.html#ctapipe.image.GlobalPeakWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="n">peak_index</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;A 3 dimensional waveforms array was passed &quot;</span>
+                <span class="s2">&quot;to GlobalPeakWindowSum. &quot;</span>
+                <span class="s2">&quot;Waveforms should be shape (n_pixels, n_samples). &quot;</span>
+                <span class="s2">&quot;This will raise an error in future versions.&quot;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span>
+            <span class="p">)</span>
+            <span class="n">peak_index</span> <span class="o">=</span> <span class="n">peak_index</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="n">charge</span> <span class="o">=</span> <span class="n">sum_samples_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span>
+        <span class="p">)</span>
+        <span class="n">pulse_time</span> <span class="o">=</span> <span class="n">extract_pulse_time_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">charge</span><span class="p">,</span> <span class="n">pulse_time</span></div></div>
+
+
+<div class="viewcode-block" id="LocalPeakWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.LocalPeakWindowSum.html#ctapipe.image.LocalPeakWindowSum">[docs]</a><span class="k">class</span> <span class="nc">LocalPeakWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor which sums in a window about the</span>
+<span class="sd">    peak in each pixel&#39;s waveform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Define the width of the integration window&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">window_shift</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">3</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Define the shift of the integration window &#39;</span>
+                <span class="s1">&#39;from the peak_index (peak_index - shift)&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LocalPeakWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.LocalPeakWindowSum.html#ctapipe.image.LocalPeakWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="n">peak_index</span> <span class="o">=</span> <span class="n">waveforms</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="n">charge</span> <span class="o">=</span> <span class="n">sum_samples_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span>
+        <span class="p">)</span>
+        <span class="n">pulse_time</span> <span class="o">=</span> <span class="n">extract_pulse_time_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">charge</span><span class="p">,</span> <span class="n">pulse_time</span></div></div>
+
+
+<div class="viewcode-block" id="NeighborPeakWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.NeighborPeakWindowSum.html#ctapipe.image.NeighborPeakWindowSum">[docs]</a><span class="k">class</span> <span class="nc">NeighborPeakWindowSum</span><span class="p">(</span><span class="n">ImageExtractor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor which sums in a window about the</span>
+<span class="sd">    peak defined by the wavefroms in neighboring pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_width</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">7</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Define the width of the integration window&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">window_shift</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">3</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Define the shift of the integration window &#39;</span>
+                <span class="s1">&#39;from the peak_index (peak_index - shift)&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">lwt</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Weight of the local pixel (0: peak from neighbors only, &#39;</span>
+                <span class="s1">&#39;1: local pixel counts as much as any neighbor)&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NeighborPeakWindowSum.requires_neighbors"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.NeighborPeakWindowSum.html#ctapipe.image.NeighborPeakWindowSum.requires_neighbors">[docs]</a>    <span class="k">def</span> <span class="nf">requires_neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="NeighborPeakWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.NeighborPeakWindowSum.html#ctapipe.image.NeighborPeakWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="n">average_wfs</span> <span class="o">=</span> <span class="n">neighbor_average_waveform</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lwt</span>
+        <span class="p">)</span>
+        <span class="n">peak_index</span> <span class="o">=</span> <span class="n">average_wfs</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">charge</span> <span class="o">=</span> <span class="n">sum_samples_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span>
+        <span class="p">)</span>
+        <span class="n">pulse_time</span> <span class="o">=</span> <span class="n">extract_pulse_time_around_peak</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="n">peak_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">charge</span><span class="p">,</span> <span class="n">pulse_time</span></div></div>
+
+
+<div class="viewcode-block" id="BaselineSubtractedNeighborPeakWindowSum"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.BaselineSubtractedNeighborPeakWindowSum.html#ctapipe.image.BaselineSubtractedNeighborPeakWindowSum">[docs]</a><span class="k">class</span> <span class="nc">BaselineSubtractedNeighborPeakWindowSum</span><span class="p">(</span><span class="n">NeighborPeakWindowSum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extractor that first subtracts the baseline before summing in a</span>
+<span class="sd">    window about the peak defined by the wavefroms in neighboring pixels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseline_start</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Start sample for baseline estimation&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">baseline_end</span> <span class="o">=</span> <span class="n">Int</span><span class="p">(</span>
+        <span class="mi">10</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;End sample for baseline estimation&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaselineSubtractedNeighborPeakWindowSum.__call__"><a class="viewcode-back" href="../../../api/ctapipe.image.extractor.BaselineSubtractedNeighborPeakWindowSum.html#ctapipe.image.BaselineSubtractedNeighborPeakWindowSum.__call__">[docs]</a>    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveforms</span><span class="p">):</span>
+        <span class="n">baseline_corrected</span> <span class="o">=</span> <span class="n">subtract_baseline</span><span class="p">(</span>
+            <span class="n">waveforms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">baseline_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">baseline_end</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">baseline_corrected</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright ctapipe developers.  Last updated 03 Sep 2019 15:10
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

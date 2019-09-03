@@ -1,0 +1,37 @@
+SimTelEventSource
+=================
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: SimTelEventSource
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SimTelEventSource.back_seekable
+      ~SimTelEventSource.is_stream
+      ~SimTelEventSource.skip_calibration_events
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~SimTelEventSource.close
+      ~SimTelEventSource.fill_mc_information
+      ~SimTelEventSource.is_compatible
+      ~SimTelEventSource.prepare_subarray_info
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: back_seekable
+   .. autoattribute:: is_stream
+   .. autoattribute:: skip_calibration_events
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: close
+   .. automethod:: fill_mc_information
+   .. automethod:: is_compatible
+   .. automethod:: prepare_subarray_info

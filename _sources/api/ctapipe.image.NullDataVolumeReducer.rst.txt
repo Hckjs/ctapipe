@@ -1,0 +1,17 @@
+NullDataVolumeReducer
+=====================
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: NullDataVolumeReducer
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~NullDataVolumeReducer.__call__
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

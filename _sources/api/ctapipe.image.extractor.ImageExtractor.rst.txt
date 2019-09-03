@@ -1,0 +1,21 @@
+ImageExtractor
+==============
+
+.. currentmodule:: ctapipe.image.extractor
+
+.. autoclass:: ImageExtractor
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ImageExtractor.__call__
+      ~ImageExtractor.check_neighbor_set
+      ~ImageExtractor.requires_neighbors
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: check_neighbor_set
+   .. automethod:: requires_neighbors
