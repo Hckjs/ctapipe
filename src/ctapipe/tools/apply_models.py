@@ -76,6 +76,12 @@ class ApplyModels(Tool):
         help="Number of threads to use for the reconstruction. This overwrites the values in the config",
     ).tag(config=True)
 
+    allowed_tels = List(
+        default_value=None,
+        allow_none=True,
+        help="List containing the allowed telescope ids to be used for the reconstruction. ",
+    ).tag(config=True)
+
     progress_bar = Bool(
         help="show progress bar during processing",
         default_value=True,
@@ -178,6 +184,7 @@ class ApplyModels(Tool):
             true_parameters=False,
             observation_info=True,
             instrument=True,
+            telescopes=self.allowed_tels,
         )
         bar = tqdm(
             chunk_iterator,
