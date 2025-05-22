@@ -4,6 +4,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, CartesianRepresentation, SphericalRepresentation
 from astropy.table import Table
+from IPython.core.debugger import set_trace
 from traitlets import UseEnum
 
 from ctapipe.core import Component, Container
@@ -474,6 +475,7 @@ class StereoDispCombiner(StereoCombiner):
 
         for tel_id, dl2 in event.dl2.tel.items():
             if dl2.geometry[self.prefix].is_valid:
+                set_trace()
                 dl1 = event.dl1.tel[tel_id].parameters
                 hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
                 hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
@@ -487,6 +489,7 @@ class StereoDispCombiner(StereoCombiner):
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
 
+        set_trace()
         if len(fov_lon_values) > 0:
             index_tel_combs = get_combinations(range(len(ids)), n_tel_combinations)
             fov_lons, fov_lats, comb_weights = calc_combs_min_distances_event(
@@ -504,8 +507,9 @@ class StereoDispCombiner(StereoCombiner):
                 pointing_az=event.pointing.array_azimuth,
             )
             valid = True
+            set_trace()
         else:
-            alt = az = u.Quantity(np.nan, u.deg, copy=False)
+            alt = az = u.Quantity(np.nan, u.deg)
             valid = False
 
         event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
