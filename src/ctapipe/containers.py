@@ -1084,7 +1084,7 @@ class ReconstructedContainer(Container):
         default_factory=partial(Map, ReconstructedEnergyContainer),
         description="map of algorithm to reconstructed energy parameters",
     )
-    classification = Field(
+    particle_type = Field(
         default_factory=partial(Map, ParticleClassificationContainer),
         description="map of algorithm to classification parameters",
     )

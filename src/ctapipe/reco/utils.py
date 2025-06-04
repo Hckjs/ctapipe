@@ -31,3 +31,4 @@ def add_defaults_and_meta(table, container, prefix=None, add_tel_prefix=False):
 
         if colname in table.colnames:
             table[colname].description = field.description
+            table[colname].field_name = name

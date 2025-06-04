@@ -4,7 +4,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, CartesianRepresentation, SphericalRepresentation
 from astropy.table import Table
-from IPython.core.debugger import set_trace
+from sklearn.cluster import DBSCAN, KMeans
 from traitlets import UseEnum
 
 from ctapipe.core import Component, Container
@@ -18,7 +18,7 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
-from .preprocessing import telescope_to_horizontal
+from .preprocessing import horizontal_to_telescope, telescope_to_horizontal
 from .telescope_event_handling import (
     calc_combs_min_distances_event,
     calc_combs_min_distances_table,
@@ -465,7 +465,7 @@ class StereoDispCombiner(StereoCombiner):
             "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
         )
 
-    def _combine_altaz(self, event):
+    def _combine_altaz(self, event, table=None):
         ids = []
         fov_lon_values = []
         fov_lat_values = []
@@ -475,7 +475,6 @@ class StereoDispCombiner(StereoCombiner):
 
         for tel_id, dl2 in event.dl2.tel.items():
             if dl2.geometry[self.prefix].is_valid:
-                set_trace()
                 dl1 = event.dl1.tel[tel_id].parameters
                 hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
                 hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
@@ -489,7 +488,6 @@ class StereoDispCombiner(StereoCombiner):
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
 
-        set_trace()
         if len(fov_lon_values) > 0:
             index_tel_combs = get_combinations(range(len(ids)), n_tel_combinations)
             fov_lons, fov_lats, comb_weights = calc_combs_min_distances_event(
@@ -507,20 +505,24 @@ class StereoDispCombiner(StereoCombiner):
                 pointing_az=event.pointing.array_azimuth,
             )
             valid = True
-            set_trace()
         else:
-            alt = az = u.Quantity(np.nan, u.deg)
+            alt = az = fov_lon_weighted_average = fov_lat_weighted_average = u.Quantity(
+                np.nan, u.deg
+            )
             valid = False
 
-        event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
-            alt=alt,
-            az=az,
-            telescopes=ids,
-            is_valid=valid,
-            prefix=self.prefix,
-        )
+        if table is not None:
+            table.add_row((fov_lon_weighted_average, fov_lat_weighted_average))
+        else:
+            event.dl2.stereo.geometry[self.prefix] = ReconstructedGeometryContainer(
+                alt=alt,
+                az=az,
+                telescopes=ids,
+                is_valid=valid,
+                prefix=self.prefix,
+            )
 
-    def __call__(self, event: ArrayEventContainer) -> None:
+    def __call__(self, event: ArrayEventContainer, table=None) -> None:
         """
         Calculate the mean prediction for a single array event.
         """
@@ -532,7 +534,7 @@ class StereoDispCombiner(StereoCombiner):
         ]
         for prop in properties:
             if prop is ReconstructionProperty.GEOMETRY:
-                self._combine_altaz(event)
+                self._combine_altaz(event, table)
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """ """
@@ -667,3 +669,272 @@ class StereoDispCombiner(StereoCombiner):
         stereo_table[f"{self.prefix}_telescopes"] = tel_ids
         add_defaults_and_meta(stereo_table, _containers[self.property], self.prefix)
         return stereo_table
+
+
+class StereoKMeansCombiner(StereoCombiner):
+    """ """
+
+    weights = CaselessStrEnum(
+        ["none", "intensity", "konrad"],
+        default_value="none",
+        help=(
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+        ),
+    ).tag(config=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.supported = ReconstructionProperty.GEOMETRY
+        if self.property not in self.supported:
+            raise NotImplementedError(
+                f"Combination of {self.property} not implemented in {self.__class__.__name__}"
+            )
+
+    def _calculate_weights(self, data):
+        if isinstance(data, Container):
+            if self.weights == "intensity":
+                return data.hillas.intensity
+
+            if self.weights == "konrad":
+                return data.hillas.intensity * data.hillas.length / data.hillas.width
+
+            return 1
+
+        if isinstance(data, Table):
+            if self.weights == "intensity":
+                return data["hillas_intensity"]
+
+            if self.weights == "konrad":
+                return (
+                    data["hillas_intensity"]
+                    * data["hillas_length"]
+                    / data["hillas_width"]
+                )
+
+            return np.ones(len(data))
+
+        raise TypeError(
+            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+        )
+
+    def _sigmoid_scaled_weight(self, x, scale=0.3, sharpness=20):
+        sigmoid = 1 / (1 + np.exp(-sharpness * (x - 0.8)))
+        return scale * sigmoid
+
+    def _combine_altaz(self, event, table):
+        points = []
+        weights = []
+        scores = []
+
+        signs = np.array([-1, 1])
+        n_clusters = 2
+
+        for tel_id, dl2 in event.dl2.tel.items():
+            if dl2.geometry[self.prefix].is_valid:
+                lon, lat = horizontal_to_telescope(
+                    alt=dl2.geometry[self.prefix].alt,
+                    az=dl2.geometry[self.prefix].az,
+                    pointing_alt=event.pointing.array_altitude,
+                    pointing_az=event.pointing.array_azimuth,
+                )
+                dl1 = event.dl1.tel[tel_id].parameters
+                hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
+                hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
+                hillas_psi = dl1.hillas.psi.to_value(u.rad)
+                disp = dl2.disp[self.prefix].parameter.value
+                sign_score = dl2.disp[self.prefix].sign_score
+                weight = self._calculate_weights(dl1) if dl1 else 1
+
+                fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
+                fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
+
+                scaled = self._sigmoid_scaled_weight(sign_score)
+
+                score = np.zeros(2)
+                score[np.sign(disp) == signs] = 1 - scaled
+
+                for i in range(2):
+                    points.append((fov_lons[i], fov_lats[i]))
+                    weights.append(weight)
+                    scores.append(score[i])
+
+        if len(points) == 2:
+            table.add_row((lon, lat))
+
+        elif len(points) > 2:
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+            labels = kmeans.fit_predict(points, sample_weight=weights)
+            centroids = kmeans.cluster_centers_
+
+            cluster_scores = []
+            for k in range(n_clusters):
+                mask = labels == k
+                pts = np.array(points)[mask]
+                scrs = np.array(scores)[mask]
+
+                dists = np.sqrt(np.sum((pts - centroids[k]) ** 2, axis=1))
+                cluster_score = (np.sum(dists) / len(dists)) * np.prod(scrs)
+                cluster_scores.append(cluster_score)
+
+            # set_trace()
+            best_cluster = np.argmin(cluster_scores)
+            lon = centroids[best_cluster, 0]
+            lat = centroids[best_cluster, 1]
+            table.add_row((lon, lat))
+
+        else:
+            lon = lat = u.Quantity(np.nan, u.deg)
+            table.add_row((lon, lat))
+
+    def __call__(self, event: ArrayEventContainer, table=None) -> None:
+        """
+        Calculate the mean prediction for a single array event.
+        """
+
+        properties = [
+            self.property & itm
+            for itm in self.supported
+            if self.property & itm in ReconstructionProperty
+        ]
+        for prop in properties:
+            if prop is ReconstructionProperty.GEOMETRY:
+                self._combine_altaz(event, table)
+
+    def predict_table(self, mono_predictions: Table) -> Table:
+        return mono_predictions
+
+
+class StereoDBScanCombiner(StereoCombiner):
+    """ """
+
+    weights = CaselessStrEnum(
+        ["none", "intensity", "konrad"],
+        default_value="none",
+        help=(
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+        ),
+    ).tag(config=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.supported = ReconstructionProperty.GEOMETRY
+        if self.property not in self.supported:
+            raise NotImplementedError(
+                f"Combination of {self.property} not implemented in {self.__class__.__name__}"
+            )
+
+    def _calculate_weights(self, data):
+        if isinstance(data, Container):
+            if self.weights == "intensity":
+                return data.hillas.intensity
+
+            if self.weights == "konrad":
+                return data.hillas.intensity * data.hillas.length / data.hillas.width
+
+            return 1
+
+        if isinstance(data, Table):
+            if self.weights == "intensity":
+                return data["hillas_intensity"]
+
+            if self.weights == "konrad":
+                return (
+                    data["hillas_intensity"]
+                    * data["hillas_length"]
+                    / data["hillas_width"]
+                )
+
+            return np.ones(len(data))
+
+        raise TypeError(
+            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+        )
+
+    def _sigmoid_scaled_weight(self, x, scale=0.3, sharpness=20):
+        sigmoid = 1 / (1 + np.exp(-sharpness * (x - 0.8)))
+        return scale * sigmoid
+
+    def _combine_altaz(self, event, table):
+        points = []
+        weights = []
+        scores = []
+
+        signs = np.array([-1, 1])
+
+        for tel_id, dl2 in event.dl2.tel.items():
+            if dl2.geometry[self.prefix].is_valid:
+                lon, lat = horizontal_to_telescope(
+                    alt=dl2.geometry[self.prefix].alt,
+                    az=dl2.geometry[self.prefix].az,
+                    pointing_alt=event.pointing.array_altitude,
+                    pointing_az=event.pointing.array_azimuth,
+                )
+                dl1 = event.dl1.tel[tel_id].parameters
+                hillas_fov_lon = dl1.hillas.fov_lon.to_value(u.deg)
+                hillas_fov_lat = dl1.hillas.fov_lat.to_value(u.deg)
+                hillas_psi = dl1.hillas.psi.to_value(u.rad)
+                disp = dl2.disp[self.prefix].parameter.value
+                sign_score = dl2.disp[self.prefix].sign_score
+                weight = self._calculate_weights(dl1) if dl1 else 1
+
+                fov_lons = hillas_fov_lon + signs * disp * np.cos(hillas_psi)
+                fov_lats = hillas_fov_lat + signs * disp * np.sin(hillas_psi)
+
+                scaled = self._sigmoid_scaled_weight(sign_score)
+
+                score = np.ones(2)
+                score[np.sign(disp) == signs] = 1 + scaled
+
+                for i in range(2):
+                    points.append((fov_lons[i], fov_lats[i]))
+                    weights.append(weight)
+                    scores.append(score[i])
+
+        if len(points) == 2:
+            table.add_row((lon, lat))
+
+        elif len(points) > 2:
+            dbscan = DBSCAN(
+                eps=1,
+                min_samples=int(len(points) / 2),
+                n_jobs=-1,
+            )
+            labels = dbscan.fit_predict(
+                points, sample_weight=np.array(weights) * np.array(scores)
+            )
+
+            unique, counts = np.unique(labels, return_counts=True)
+            most_common = unique[np.argmax(counts)]
+            weighted_mean = np.average(
+                np.array(points)[labels == most_common],
+                axis=0,
+                weights=np.array(weights)[labels == most_common],
+            )
+
+            # set_trace()
+            lon = weighted_mean[0]
+            lat = weighted_mean[1]
+            table.add_row((lon, lat))
+
+        else:
+            lon = lat = u.Quantity(np.nan, u.deg)
+            table.add_row((lon, lat))
+
+    def __call__(self, event: ArrayEventContainer, table=None) -> None:
+        """
+        Calculate the mean prediction for a single array event.
+        """
+
+        properties = [
+            self.property & itm
+            for itm in self.supported
+            if self.property & itm in ReconstructionProperty
+        ]
+        for prop in properties:
+            if prop is ReconstructionProperty.GEOMETRY:
+                self._combine_altaz(event, table)
+
+    def predict_table(self, mono_predictions: Table) -> Table:
+        return mono_predictions

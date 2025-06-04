@@ -123,6 +123,7 @@ def write_table(
     mode="a",
     time_format="ctao_high_res",
     filters=DEFAULT_FILTERS,
+    column_transforms=None,
 ):
     """Write a table to an HDF5 file
 
@@ -174,6 +175,9 @@ def write_table(
 
         attrs = {}
         for pos, (colname, column) in enumerate(table.columns.items()):
+            if hasattr(column, "field_name") and column.field_name is not None:
+                attrs[f"CTAFIELD_{pos}_NAME"] = column.field_name
+
             if hasattr(column, "description") and column.description is not None:
                 attrs[f"CTAFIELD_{pos}_DESC"] = column.description
 
