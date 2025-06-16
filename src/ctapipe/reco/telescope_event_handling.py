@@ -326,9 +326,8 @@ def calc_combs_min_distances_table(
     lat_combs = fov_lat_values[index_tel_combs]
     lat_diffs = lat_combs[:, 0, sign_combs[:, 0]] - lat_combs[:, 1, sign_combs[:, 1]]
 
-    comb_score = (
-        sign_scores[:, 0, sign_combs[:, 0]] * sign_scores[:, 1, sign_combs[:, 1]]
-    )
+    # TODO: Does not work
+    comb_score = sign_scores[0, sign_combs[:, 0]] * sign_scores[1, sign_combs[:, 1]]
     distances = np.hypot(lon_diffs, lat_diffs) * comb_score
     argmin_distance = np.argmin(distances, axis=1)
 
