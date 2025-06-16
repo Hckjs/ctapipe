@@ -199,7 +199,7 @@ def get_combinations(iterable, size):
 
 @njit
 def calc_combs_min_distances_event(
-    index_tel_combs, fov_lon_values, fov_lat_values, weights
+    index_tel_combs, fov_lon_values, fov_lat_values, weights, sign_scores
 ):
     """
     Calculate the weighted mean field-of-view (FoV) coordinates for each telescope combination.
@@ -221,6 +221,8 @@ def calc_combs_min_distances_event(
         SIGN value (-1, 1) per telescope event.
     weights : np.ndarray
         Array of weights for each telescope event.
+    sign_scores : np.ndarray
+        Array of shape (n_tels, 2) containing a SIGN scores for each sign per telescope event.
 
     Returns
     -------
@@ -256,7 +258,9 @@ def calc_combs_min_distances_event(
             - fov_lat_values[tel_2, sign_combs[:, 1]]
         )
 
-        distances = np.hypot(lon_diffs, lat_diffs)
+        # weight the calculated distances with the SIGN scores.
+        comb_score = sign_scores[0, sign_combs[:, 0]] * sign_scores[1, sign_combs[:, 1]]
+        distances = np.hypot(lon_diffs, lat_diffs) * comb_score
 
         # Weighted mean for minimum distances
         argmin_distance = np.argmin(distances)
@@ -277,10 +281,7 @@ def calc_combs_min_distances_event(
 
 
 def calc_combs_min_distances_table(
-    index_tel_combs,
-    fov_lon_values,
-    fov_lat_values,
-    weights,
+    index_tel_combs, fov_lon_values, fov_lat_values, weights, sign_scores
 ):
     """
     Calculate the weighted mean field-of-view (FoV) coordinates for each telescope combination.
@@ -325,7 +326,10 @@ def calc_combs_min_distances_table(
     lat_combs = fov_lat_values[index_tel_combs]
     lat_diffs = lat_combs[:, 0, sign_combs[:, 0]] - lat_combs[:, 1, sign_combs[:, 1]]
 
-    distances = np.hypot(lon_diffs, lat_diffs)
+    comb_score = (
+        sign_scores[:, 0, sign_combs[:, 0]] * sign_scores[:, 1, sign_combs[:, 1]]
+    )
+    distances = np.hypot(lon_diffs, lat_diffs) * comb_score
     argmin_distance = np.argmin(distances, axis=1)
 
     # Weighted mean for minimum distances
@@ -370,18 +374,26 @@ def calc_fov_lon_lat(tel_table, prefix="DispReconstructor_tel"):
         Arrays of shape (n_tel_events, 2) containing the possible field-of-view
         longitudes and latitudes for each SIGN value.
     """
+    sign_score_limit = 0.75
+
     hillas_fov_lon = tel_table["hillas_fov_lon"].quantity.to_value(u.deg)
     hillas_fov_lat = tel_table["hillas_fov_lat"].quantity.to_value(u.deg)
     hillas_psi = tel_table["hillas_psi"].quantity.to_value(u.rad)
     disp = tel_table[f"{prefix}_parameter"]
     signs = np.array([-1, 1])
+    sign_score = tel_table[f"{prefix}_sign_score"]
+
+    sign_scores = np.ones((len(disp), 2))
+    mask_sign = np.sign(disp)[:, None] == signs
+    sign_scores[mask_sign] = 1 / (1 + sign_score)
+    sign_scores[sign_scores < sign_score_limit] = 1
 
     cos_psi = np.cos(hillas_psi)
     sin_psi = np.sin(hillas_psi)
-    lons = hillas_fov_lon[:, None] + signs * disp[:, None] * cos_psi[:, None]
-    lats = hillas_fov_lat[:, None] + signs * disp[:, None] * sin_psi[:, None]
+    lons = hillas_fov_lon[:, None] + signs * np.abs(disp)[:, None] * cos_psi[:, None]
+    lats = hillas_fov_lat[:, None] + signs * np.abs(disp)[:, None] * sin_psi[:, None]
 
-    return lons, lats
+    return lons, lats, sign_scores
 
 
 def create_combs_array(max_multi, k):
