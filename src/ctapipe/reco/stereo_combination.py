@@ -502,7 +502,7 @@ class StereoDispCombiner(StereoCombiner):
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
 
-        if len(fov_lon_values) > 2:
+        if len(fov_lon_values) > 0:
             index_tel_combs = get_combinations(range(len(ids)), n_tel_combinations)
             fov_lons, fov_lats, comb_weights = calc_combs_min_distances_event(
                 index_tel_combs,
