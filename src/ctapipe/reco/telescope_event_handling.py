@@ -197,7 +197,7 @@ def get_combinations(iterable, size):
     return np.array(list(combinations(iterable, size)))
 
 
-@njit
+# @njit
 def calc_combs_min_distances_event(
     index_tel_combs, fov_lon_values, fov_lat_values, weights, sign_scores
 ):
@@ -259,11 +259,18 @@ def calc_combs_min_distances_event(
         )
 
         # weight the calculated distances with the SIGN scores.
-        comb_score = sign_scores[0, sign_combs[:, 0]] * sign_scores[1, sign_combs[:, 1]]
+        comb_score = (
+            sign_scores[tel_1, sign_combs[:, 0]] * sign_scores[tel_2, sign_combs[:, 1]]
+        )
+        rows_sub_one = np.any(comb_score < 1)
+        comb_score[rows_sub_one] = np.where(
+            comb_score[rows_sub_one] == 1, np.nan, comb_score[rows_sub_one]
+        )
+
         distances = np.hypot(lon_diffs, lat_diffs) * comb_score
+        argmin_distance = np.nanargmin(distances)
 
         # Weighted mean for minimum distances
-        argmin_distance = np.argmin(distances)
         lon_vals = [
             fov_lon_values[tel_1, sign_combs[argmin_distance, 0]],
             fov_lon_values[tel_2, sign_combs[argmin_distance, 1]],
@@ -330,7 +337,7 @@ def calc_combs_min_distances_table(
         sign_scores[index_tel_combs][:, 0, sign_combs[:, 0]]
         * sign_scores[index_tel_combs][:, 1, sign_combs[:, 1]]
     )
-    distances = np.hypot(lon_diffs, lat_diffs) * comb_score
+    distances = np.hypot(lon_diffs, lat_diffs) * comb_score**5
     argmin_distance = np.argmin(distances, axis=1)
 
     # Weighted mean for minimum distances

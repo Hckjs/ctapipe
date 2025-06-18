@@ -214,7 +214,7 @@ class StereoMeanCombiner(StereoCombiner):
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
 
-        if len(alt_values) > 2:  # by construction len(alt_values) == len(az_values)
+        if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
             coord = AltAz(alt=alt_values, az=az_values)
             # https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction
             mono_x, mono_y, mono_z = coord.cartesian.get_xyz()
@@ -480,7 +480,7 @@ class StereoDispCombiner(StereoCombiner):
         sign_scores = []
         signs = np.array([-1, 1])
         n_tel_combinations = 2
-        sign_score_limit = 0.75
+        sign_score_limit = 0.85
 
         for tel_id, dl2 in event.dl2.tel.items():
             if dl2.geometry[self.prefix].is_valid:
@@ -502,7 +502,7 @@ class StereoDispCombiner(StereoCombiner):
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
 
-        if len(fov_lon_values) > 0:
+        if len(fov_lon_values) > 1:
             index_tel_combs = get_combinations(range(len(ids)), n_tel_combinations)
             fov_lons, fov_lats, comb_weights = calc_combs_min_distances_event(
                 index_tel_combs,
@@ -520,6 +520,10 @@ class StereoDispCombiner(StereoCombiner):
                 pointing_az=event.pointing.array_azimuth,
             )
             valid = True
+        elif len(fov_lon_values) == 1:
+            fov_lon_weighted_average = hillas_fov_lon + disp * np.cos(hillas_psi)
+            fov_lat_weighted_average = hillas_fov_lat + disp * np.cos(hillas_psi)
+
         else:
             alt = az = fov_lon_weighted_average = fov_lat_weighted_average = u.Quantity(
                 np.nan, u.deg
