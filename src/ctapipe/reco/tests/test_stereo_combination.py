@@ -370,7 +370,6 @@ def test_disp_combiner_single_event(weights):
         prefix="dummy",
         property=ReconstructionProperty.GEOMETRY,
         weights=weights,
-        sign_score_limit=0.85,
     )
     disp_combiner(event)
     if weights in ["intensity", "konrad"]:
