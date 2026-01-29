@@ -4,10 +4,10 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, CartesianRepresentation, SphericalRepresentation
 from astropy.table import Table
-from traitlets import UseEnum
+from traitlets import UseEnum, validate
 
 from ctapipe.core import Component, Container
-from ctapipe.core.traits import Bool, CaselessStrEnum, Float, Unicode
+from ctapipe.core.traits import Bool, CaselessStrEnum, Float, Integer, TraitError, Unicode
 from ctapipe.reco.reconstructor import ReconstructionProperty
 
 from ..compat import COPY_IF_NEEDED
@@ -513,7 +513,27 @@ class StereoDispCombiner(StereoCombiner):
       (none, intensity, konrad).
     - The DISP sign-score can optionally be used to prefer SIGN combinations
       with higher reliability when resolving the DISP head–tail ambiguity.
+    - The ``n_tel_combinations`` trait controls how many telescopes form a
+      combination (minimum 2). The ``n_best_tels`` trait optionally limits the
+      reconstruction to the best ``n_best_tels`` telescopes by weight; set it to
+      ``None`` to use all valid telescopes.
     """
+
+    n_tel_combinations = Integer(
+        default_value=2,
+        min=2,
+        help="Number of telescopes used per combination (minimum 2).",
+    ).tag(config=True)
+
+    n_best_tels = Integer(
+        default_value=None,
+        min=2,
+        allow_none=True,
+        help=(
+            "Select the best n_best_tels telescopes by weight for the combination. "
+            "Set to None to use all valid telescopes."
+        ),
+    ).tag(config=True)
 
     sign_score_limit = Float(
         default_value=0.85,
@@ -529,6 +549,26 @@ class StereoDispCombiner(StereoCombiner):
         ),
     ).tag(config=True)
 
+    @validate("n_tel_combinations")
+    def _validate_n_tel_combinations(self, proposal):
+        n_tel_combinations = proposal["value"]
+        if self.n_best_tels is not None and n_tel_combinations > self.n_best_tels:
+            raise TraitError(
+                "n_tel_combinations must be less than or equal to n_best_tels."
+            )
+        return n_tel_combinations
+
+    @validate("n_best_tels")
+    def _validate_n_best_tels(self, proposal):
+        n_best_tels = proposal["value"]
+        if n_best_tels is None:
+            return n_best_tels
+        if n_best_tels < self.n_tel_combinations:
+            raise TraitError(
+                "n_best_tels must be greater than or equal to n_tel_combinations."
+            )
+        return n_best_tels
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -537,8 +577,6 @@ class StereoDispCombiner(StereoCombiner):
             raise NotImplementedError(
                 f"Combination of {self.property} not implemented in {self.__class__.__name__}"
             )
-
-        self.n_tel_combinations = 2
 
     def _calc_dist_weights(self, disp, sign_score, signs):
         dist_weight = np.ones(2)
