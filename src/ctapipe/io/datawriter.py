@@ -143,7 +143,7 @@ def write_reference_metadata_headers(
         process=meta.Process(
             type_="Simulation" if is_simulation else "Observation",
             subtype="",
-            id_=",".join(str(x) for x in obs_ids),
+            id_="",
         ),
         activity=activity_meta,
         instrument=instrument_info,
